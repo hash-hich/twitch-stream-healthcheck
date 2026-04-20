@@ -13,7 +13,6 @@ from twitch_healthcheck.models import (
     Variant,
 )
 
-
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
@@ -39,7 +38,7 @@ class DetectionConfig(BaseModel):
     bitrate_drop_threshold: float = Field(
         0.5,
         gt=0,
-        description="Fraction of variant.bandwidth below which a segment is considered low-bitrate.",
+        description="Fraction of variant.bandwidth below which a segment is low-bitrate.",
     )
 
     # Bitrate drop: only emit an incident after this many consecutive low segments.
@@ -116,10 +115,7 @@ def detect_http_errors(
             continue
 
         status = m.http_status
-        if status is None or status >= 500:
-            severity = "critical"
-        else:
-            severity = "warning"
+        severity = "critical" if status is None or status >= 500 else "warning"
 
         incidents.append(
             _make_incident(
@@ -166,7 +162,7 @@ def detect_stalls(
     incidents: list[Incident] = []
 
     successful = [m for m in measurements if m.success]
-    for prev, curr in zip(successful, successful[1:]):
+    for prev, curr in zip(successful, successful[1:], strict=False):
         gap_s = (curr.timestamp_utc - prev.timestamp_utc).total_seconds()
         if gap_s > threshold_s:
             incidents.append(
@@ -279,7 +275,7 @@ def detect_gaps(
     cfg = config or _DEFAULT_CONFIG
     incidents: list[Incident] = []
 
-    for prev, curr in zip(measurements, measurements[1:]):
+    for prev, curr in zip(measurements, measurements[1:], strict=False):
         jump = curr.segment.sequence - prev.segment.sequence
         if jump > cfg.gap_max_sequence_jump:
             missing = jump - 1

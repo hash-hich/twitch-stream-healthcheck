@@ -3,7 +3,7 @@
 All tests use synthetic SegmentMeasurement lists — no real HTTP traffic.
 """
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 
@@ -22,7 +22,6 @@ from twitch_healthcheck.models import (
     Variant,
 )
 
-UTC = timezone.utc
 T0 = datetime(2024, 4, 19, 10, 0, 0, tzinfo=UTC)   # fixed reference time
 
 

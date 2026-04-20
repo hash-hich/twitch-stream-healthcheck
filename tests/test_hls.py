@@ -1,5 +1,6 @@
 """Tests for the HLS playlist parser (hls.py)."""
 
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -121,11 +122,11 @@ class TestParseMediaPlaylist:
             assert seg.program_date_time.tzinfo is not None
 
     def test_first_segment_datetime(self) -> None:
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         result = parse_media_playlist(MEDIA_M3U8, BASE_URL)
         first = result.segments[0]
-        assert first.program_date_time == datetime(2024, 4, 19, 10, 3, 40, tzinfo=timezone.utc)
+        assert first.program_date_time == datetime(2024, 4, 19, 10, 3, 40, tzinfo=UTC)
 
     def test_master_playlist_passed_as_media_raises(self) -> None:
         with pytest.raises(PlaylistParseError, match="media playlist"):

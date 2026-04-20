@@ -6,7 +6,7 @@ Entry point registered in pyproject.toml:
 
 import asyncio
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import httpx
@@ -19,7 +19,7 @@ from rich.text import Text
 
 from twitch_healthcheck import __version__
 from twitch_healthcheck.hls import parse_master_playlist, parse_media_playlist
-from twitch_healthcheck.models import MonitorSnapshot, Segment, SegmentMeasurement
+from twitch_healthcheck.models import MonitorSnapshot, SegmentMeasurement
 from twitch_healthcheck.monitor import StreamMonitor
 from twitch_healthcheck.twitch_api import (
     StreamOfflineError,
@@ -180,7 +180,7 @@ async def _run_check(channel: str) -> int:
 
     async with httpx.AsyncClient() as client:
         for seg in segments:
-            timestamp = datetime.now(tz=timezone.utc)
+            timestamp = datetime.now(tz=UTC)
             t0 = time.monotonic()
             try:
                 resp = await client.get(seg.uri, timeout=10.0)
@@ -295,7 +295,9 @@ async def _run_monitor(
     await task
 
     snap = monitor.snapshot()
-    console.print(_build_snapshot_panel(snap, title=f"[bold]Final snapshot — {snap.channel}[/bold]"))
+    console.print(
+        _build_snapshot_panel(snap, title=f"[bold]Final snapshot — {snap.channel}[/bold]")
+    )
 
     if output:
         Path(output).write_text(snap.model_dump_json(indent=2))
@@ -321,7 +323,7 @@ def check(
         code = asyncio.run(_run_check(channel))
     except Exception as exc:
         console.print(f"[red]Unexpected error: {exc}[/red]")
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
     raise typer.Exit(code)
 
 
@@ -340,10 +342,10 @@ def monitor(
         code = asyncio.run(_run_monitor(channel, duration, quality, output))
     except StreamOfflineError:
         console.print(f"[red]● Channel '{channel}' is offline.[/red]")
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
     except Exception as exc:
         console.print(f"[red]Error: {exc}[/red]")
-        raise typer.Exit(2)
+        raise typer.Exit(2) from None
     raise typer.Exit(code)
 
 
@@ -361,7 +363,7 @@ def report(
         snap = MonitorSnapshot.model_validate_json(p.read_text())
     except Exception as exc:
         console.print(f"[red]Failed to parse report: {exc}[/red]")
-        raise typer.Exit(1)
+        raise typer.Exit(1) from None
 
     console.print(
         _build_snapshot_panel(snap, title=f"[bold]Report — {snap.channel}[/bold]")

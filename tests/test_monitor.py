@@ -4,7 +4,7 @@ HTTP calls are mocked with respx at the httpx level — no real network traffic.
 """
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from urllib.parse import urlencode
 
 import httpx
@@ -65,8 +65,6 @@ MEDIA_CONTENT_2 = (
 
 SEGMENT_BYTES = b"x" * 204_800   # 200 KB — realistic Twitch segment size
 
-UTC = timezone.utc
-
 
 def _make_monitor(**kwargs: object) -> StreamMonitor:
     """Create a StreamMonitor with test-friendly defaults."""
@@ -94,7 +92,9 @@ class TestPickVariant:
 
     def test_best_picks_highest_bandwidth(self) -> None:
         m = _make_monitor()
-        master = self._master(self._v("480p", 1_500_000), self._v("1080p60", 8_000_000), self._v("720p60", 4_000_000))
+        master = self._master(
+            self._v("480p", 1_500_000), self._v("1080p60", 8_000_000), self._v("720p60", 4_000_000)
+        )
         assert m._pick_variant(master).quality == "1080p60"
 
     def test_worst_picks_lowest_bandwidth(self) -> None:
@@ -104,7 +104,9 @@ class TestPickVariant:
 
     def test_exact_quality_match(self) -> None:
         m = _make_monitor(quality="720p60")
-        master = self._master(self._v("1080p60", 8_000_000), self._v("720p60", 4_000_000), self._v("480p", 1_500_000))
+        master = self._master(
+            self._v("1080p60", 8_000_000), self._v("720p60", 4_000_000), self._v("480p", 1_500_000)
+        )
         assert m._pick_variant(master).quality == "720p60"
 
     def test_falls_back_to_best_when_no_match(self) -> None:
@@ -246,7 +248,6 @@ class TestSnapshot:
         download_time_ms: float = 100.0,
     ) -> None:
         """Directly inject a measurement into the monitor's state."""
-        segment = monitor._measurements[0].segment if monitor._measurements else None
         from twitch_healthcheck.hls import parse_media_playlist
         media = parse_media_playlist(
             "#EXTM3U\n#EXT-X-TARGETDURATION:2\n#EXT-X-MEDIA-SEQUENCE:0\n"

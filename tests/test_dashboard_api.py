@@ -124,7 +124,8 @@ class TestStaticFiles:
         async with client as c:
             response = await c.get("/static/app.js")
         assert response.status_code == 200
-        assert "javascript" in response.headers["content-type"].lower() or "text" in response.headers["content-type"].lower()
+        ct = response.headers["content-type"].lower()
+        assert "javascript" in ct or "text" in ct
 
     async def test_app_js_not_empty(self, client: AsyncClient) -> None:
         async with client as c:

@@ -1,6 +1,6 @@
 """HLS master + media playlist parser, backed by the m3u8 library."""
 
-from datetime import timezone
+from datetime import UTC
 
 import m3u8
 
@@ -133,7 +133,7 @@ def parse_media_playlist(content: str, base_url: str) -> MediaPlaylist:
         pdt = seg.program_date_time
         if pdt is not None and pdt.tzinfo is None:
             # m3u8 sometimes returns naive datetimes — treat as UTC
-            pdt = pdt.replace(tzinfo=timezone.utc)
+            pdt = pdt.replace(tzinfo=UTC)
 
         segments.append(
             Segment(

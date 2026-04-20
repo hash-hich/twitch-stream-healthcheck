@@ -1,6 +1,5 @@
 """Tests for twitch_api.py — all HTTP calls are mocked with respx."""
 
-import json
 
 import httpx
 import pytest

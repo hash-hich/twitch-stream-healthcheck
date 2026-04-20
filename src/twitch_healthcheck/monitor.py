@@ -10,10 +10,11 @@ Flow:
 """
 
 import asyncio
+import contextlib
 import statistics
 import time
 from collections import deque
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import httpx
 
@@ -162,7 +163,7 @@ class StreamMonitor:
         Returns:
             SegmentMeasurement with timing, size, and bitrate data.
         """
-        timestamp = datetime.now(tz=timezone.utc)
+        timestamp = datetime.now(tz=UTC)
         t0 = time.monotonic()
 
         try:
@@ -298,7 +299,7 @@ class StreamMonitor:
             StreamOfflineError: If the channel is not live at startup.
             TwitchAPIError: On unrecoverable API errors during initialisation.
         """
-        self._start_time = datetime.now(tz=timezone.utc)
+        self._start_time = datetime.now(tz=UTC)
         self._stop_event.clear()
 
         async with httpx.AsyncClient() as client:
@@ -325,12 +326,10 @@ class StreamMonitor:
                     )
                     # Wait for the next poll interval, but wake up immediately
                     # if stop() sets the event.
-                    try:
+                    with contextlib.suppress(TimeoutError):
                         await asyncio.wait_for(
                             self._stop_event.wait(), timeout=interval
                         )
-                    except (asyncio.TimeoutError, TimeoutError):
-                        pass
 
             except asyncio.CancelledError:
                 pass
@@ -350,7 +349,7 @@ class StreamMonitor:
         """
         measurements = list(self._measurements)
         uptime = (
-            (datetime.now(tz=timezone.utc) - self._start_time).total_seconds()
+            (datetime.now(tz=UTC) - self._start_time).total_seconds()
             if self._start_time
             else 0.0
         )
@@ -374,5 +373,5 @@ class StreamMonitor:
             median_latency_ms=median_latency,
             effective_bitrate_bps=effective_bitrate,
             recent_incidents=list(self._incidents[-20:]),
-            timestamp_utc=datetime.now(tz=timezone.utc),
+            timestamp_utc=datetime.now(tz=UTC),
         )

@@ -1,6 +1,6 @@
 """Tests for Pydantic models in twitch_healthcheck.models."""
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -16,7 +16,7 @@ from twitch_healthcheck.models import (
     Variant,
 )
 
-UTC = timezone.utc
+UTC = UTC
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -106,7 +106,9 @@ class TestSegment:
 
 class TestMasterPlaylist:
     def test_valid(self) -> None:
-        pl = MasterPlaylist(variants=[make_variant(), make_variant(quality="720p30", bandwidth=3_000_000)])
+        pl = MasterPlaylist(
+            variants=[make_variant(), make_variant(quality="720p30", bandwidth=3_000_000)]
+        )
         assert len(pl.variants) == 2
 
     def test_empty_variants(self) -> None:
@@ -277,4 +279,4 @@ class TestMonitorSnapshot:
 
     def test_health_status_type(self) -> None:
         # HealthStatus is a type alias, check it resolves correctly
-        assert "healthy" == HealthStatus.__args__[0]  # type: ignore[attr-defined]
+        assert HealthStatus.__args__[0] == "healthy"  # type: ignore[attr-defined]

@@ -6,7 +6,7 @@ event loop, which respx intercepts at the httpx transport level.
 """
 
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from urllib.parse import urlencode
 
@@ -258,7 +258,7 @@ class TestReportCommand:
             median_latency_ms=88.5,
             effective_bitrate_bps=5_800_000,
             recent_incidents=[],
-            timestamp_utc=datetime(2024, 4, 19, 10, 0, 0, tzinfo=timezone.utc),
+            timestamp_utc=datetime(2024, 4, 19, 10, 0, 0, tzinfo=UTC),
         )
         path.write_text(snap.model_dump_json(indent=2))
         return snap
