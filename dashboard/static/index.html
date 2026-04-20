@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Twitch Stream Monitor</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { darkMode: 'class' }</script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+  <style>
+    body { font-family: 'Inter', ui-sans-serif, system-ui, sans-serif; }
+    .card { background: rgb(15 23 42); border: 1px solid rgb(30 41 59); border-radius: 0.75rem; padding: 1.25rem 1.5rem; }
+    .metric-value { font-size: 1.75rem; font-weight: 700; line-height: 1.2; letter-spacing: -0.02em; }
+    .metric-label { font-size: 0.75rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 0.25rem; }
+    .chart-container { position: relative; height: 180px; }
+    .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen">
+
+  <!-- ─── Header ─────────────────────────────────────────────────────────── -->
+  <header class="border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <svg class="w-6 h-6 text-purple-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+      </svg>
+      <span class="text-lg font-semibold tracking-tight">Stream Monitor</span>
+      <span class="text-slate-500 font-normal">—</span>
+      <span id="channel-name" class="text-slate-300 font-medium">—</span>
+    </div>
+    <div class="flex items-center gap-3">
+      <span id="last-updated" class="text-xs text-slate-500"></span>
+      <span id="status-pill" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border border-slate-700 text-slate-400">
+        <span class="dot bg-slate-500"></span>Connecting…
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- ─── Metric cards ─────────────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+
+      <div class="card">
+        <div class="metric-label">Uptime</div>
+        <div class="metric-value text-slate-100" id="card-uptime">—</div>
+        <div class="text-xs text-slate-500 mt-1">since monitor start</div>
+      </div>
+
+      <div class="card">
+        <div class="metric-label">Segments</div>
+        <div class="metric-value text-slate-100" id="card-segments">—</div>
+        <div class="text-xs text-slate-500 mt-1" id="card-success-rate">success rate —</div>
+      </div>
+
+      <div class="card">
+        <div class="metric-label">Median latency</div>
+        <div class="metric-value text-slate-100" id="card-latency">—</div>
+        <div class="text-xs text-slate-500 mt-1">segment download time</div>
+      </div>
+
+      <div class="card">
+        <div class="metric-label">Effective bitrate</div>
+        <div class="metric-value text-slate-100" id="card-bitrate">—</div>
+        <div class="text-xs text-slate-500 mt-1">measured throughput</div>
+      </div>
+
+    </div>
+
+    <!-- ─── Charts ───────────────────────────────────────────────────────── -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-sm font-semibold text-slate-200">Segment Latency</div>
+            <div class="text-xs text-slate-500">ms per segment — last 60 samples</div>
+          </div>
+          <div class="w-3 h-3 rounded-full bg-violet-500 opacity-80"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-latency"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="text-sm font-semibold text-slate-200">Effective Bitrate</div>
+            <div class="text-xs text-slate-500">Mbps — last 60 samples</div>
+          </div>
+          <div class="w-3 h-3 rounded-full bg-emerald-500 opacity-80"></div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-bitrate"></canvas>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ─── Incidents table ───────────────────────────────────────────────── -->
+    <div class="card">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-sm font-semibold text-slate-200">Recent Incidents</div>
+        <span id="incidents-count" class="text-xs text-slate-500">0 incidents</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="border-b border-slate-800">
+              <th class="text-left pb-2 text-xs font-medium text-slate-500 uppercase tracking-wider w-24">Time</th>
+              <th class="text-left pb-2 text-xs font-medium text-slate-500 uppercase tracking-wider w-28">Type</th>
+              <th class="text-left pb-2 text-xs font-medium text-slate-500 uppercase tracking-wider w-24">Severity</th>
+              <th class="text-left pb-2 text-xs font-medium text-slate-500 uppercase tracking-wider">Message</th>
+            </tr>
+          </thead>
+          <tbody id="incidents-body">
+            <tr>
+              <td colspan="4" class="py-6 text-center text-slate-600 text-xs">No incidents detected</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
